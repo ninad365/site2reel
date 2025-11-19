@@ -3,6 +3,7 @@ from pydantic import BaseModel
 from fastapi.responses import FileResponse
 from services.video_service import VideoService
 from services.image_service import ImageService
+from services.scraper_service import ScraperService
 import os
 import uuid
 
@@ -36,23 +37,18 @@ def generate_video(req: SiteRequest):
     try:
         # Scrape site_info and extract image
         # (You already have a scraper, but inserting placeholder here)
-        site_info = {
-            "title": "Website Promo",
-            "description": "Auto-generated Reel",
-            "url": req.url
-        }
+        site_info = ScraperService.scrape_site_info(req.url)
+        print("➡️ Scraped:", site_info["title"])
 
-        # Download preview image (replace with real scraper image)
-        image_clip = ImageService.download_image(req.url)
-
-        if image_clip is None:
-            raise HTTPException(400, "Could not fetch image from URL")
+        img_clip = None
+        if site_info["img"]:
+            img_clip = ImageService.download_image(site_info["img"])
 
         # Generate output filename
         output_path = f"output_{uuid.uuid4().hex}.mp4"
 
         # Create promo video
-        final_path = VideoService.create_promo_video(site_info, image_clip, output_path)
+        final_path = VideoService.create_promo_video(site_info, img_clip, output_path)
 
         # Return downloadable video
         return {"video": final_path}
