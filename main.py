@@ -44,14 +44,15 @@ def generate_video(req: SiteRequest):
         if site_info["img"]:
             img_clip = ImageService.download_image(site_info["img"])
 
-        # Generate output filename
-        output_path = f"output_{uuid.uuid4().hex}.mp4"
-
         # Create promo video
-        final_path = VideoService.create_promo_video(site_info, img_clip, output_path)
+        output_path = VideoService.create_promo_video(site_info, img_clip)
 
         # Return downloadable video
-        return {"video": final_path}
+        return FileResponse(
+            output_path,
+            media_type="video/mp4",
+            filename=os.path.basename(output_path)
+        )
 
     except Exception as e:
         print("ERROR:", e)
