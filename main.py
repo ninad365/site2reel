@@ -6,11 +6,20 @@ from services.image_service import ImageService
 from services.scraper_service import ScraperService
 import os
 import uuid
+from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI(
     title="Site2Reel API",
     description="Generate promotional videos from website URLs",
     version="1.0.0"
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],   # For now allow all. Later we can lock this.
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 # -------------------------------
