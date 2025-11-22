@@ -1,13 +1,8 @@
 import os
 import textwrap
-from moviepy.editor import (
-    TextClip, ColorClip, CompositeVideoClip,
-    concatenate_videoclips, AudioFileClip
-)
+import moviepy.editor as mpy
 from services.util_service import generate_filename
-from moviepy.config import change_settings
-
-change_settings({"IMAGEMAGICK_BINARY": "magick"})
+from services.pil_text import pil_text_clip  # ← your new helper
 
 class VideoService:
 
@@ -15,54 +10,35 @@ class VideoService:
     def create_promo_video(site_info, image_clip=None):
         clips = []
 
-        # Gradient-style fallback background
-        bg = ColorClip(size=(1280, 720), color=(20, 20, 20))
-
-        # Title screen
-        title_clip = TextClip(
-            site_info["title"],
-            fontsize=60,
-            color="white",
-            size=(1280, 720),
-            method="caption"
-        ).set_duration(3)
-
-        title_clip = CompositeVideoClip([bg.set_duration(3), title_clip])
+        # Title
+        title_text = site_info.get("title") or "Website Preview"
+        title_clip = pil_text_clip(title_text, fontsize=60, duration=3)
         clips.append(title_clip)
 
-        # Description screen
-        desc_text = "\n".join(textwrap.wrap(site_info["desc"], 40))
-        desc_clip = TextClip(
-            desc_text,
-            fontsize=40,
-            color="white",
-            size=(1280, 720),
-            method="caption"
-        ).set_duration(4)
-
-        desc_clip = CompositeVideoClip([bg.set_duration(4), desc_clip])
+        # Description
+        desc = site_info.get("desc") or "Description"
+        desc_clip = pil_text_clip(desc, fontsize=40, duration=4)
         clips.append(desc_clip)
 
         # Image (if exists)
         if image_clip:
+            image_clip = image_clip.set_duration(4).resize((1280, 720))
             clips.append(image_clip)
 
-        for c in clips:
-            print("Clip:", c, "Duration:", c.duration)
+        if not clips:
+            raise Exception("No clips to concatenate")
 
-        final = concatenate_videoclips(clips, method="compose")
+        final = mpy.concatenate_videoclips(clips, method="compose")
 
         # Optional audio
         try:
-            music = AudioFileClip("background.mp3").volumex(0.3)
+            music = mpy.AudioFileClip("background.mp3").volumex(0.3)
             final = final.set_audio(music)
         except:
             pass
 
-        # Ensure output dir
         os.makedirs("output", exist_ok=True)
-
-        filename = generate_filename(site_info["title"])
+        filename = generate_filename(site_info.get("title"))
         output_path = os.path.join("output", filename)
 
         final.write_videofile(output_path, fps=24)
