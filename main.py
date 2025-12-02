@@ -1,6 +1,10 @@
+from dotenv import load_dotenv
+load_dotenv()
+
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from fastapi.responses import FileResponse
+from services.ai_scraper_service import AIScraperService
 from services.video_service import VideoService
 from services.image_service import ImageService
 from services.scraper_service import ScraperService
@@ -44,17 +48,13 @@ def home():
 def generate_video(req: SiteRequest):
 
     try:
-        # Scrape site_info and extract image
-        # (You already have a scraper, but inserting placeholder here)
-        site_info = ScraperService.scrape_site_info(req.url)
-        print("➡️ Scraped:", site_info["title"])
-
-        img_clip = None
-        if site_info["img"]:
-            img_clip = ImageService.download_image(site_info["img"])
-
+        # 1. Fetch structured data + script via OpenAI
+        site = AIScraperService.fetch_site_data_and_script(req.url)
+        
+        print(site)
+        
         # Create promo video
-        output_path = VideoService.create_promo_video(site_info, img_clip)
+        output_path = VideoService.create_promo_video(site)
 
         # Return downloadable video
         return FileResponse(
